@@ -1,10 +1,4 @@
-"""Write the KPI matrix to Google Sheets and return the spreadsheet URL.
-
-Two modes:
-- If OUTPUT_SHEET_ID is set, append a new dated tab to that master workbook.
-- Otherwise create a brand-new spreadsheet.
-The service account must have Editor access to the master workbook (if used).
-"""
+"""Write the KPI matrix to Google Sheets and return the spreadsheet URL."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -28,7 +22,7 @@ def _values(rows, meta, comparison_on):
     ]
     for r in rows:
         if comparison_on:
-            chg = "—" if r["change_pct"] is None else f"{r['change_pct']}%"
+            chg = "-" if r["change_pct"] is None else f"{r['change_pct']}%"
             out.append([r["metric"], str(r["current"]), str(r["previous"]), chg, r["source"]])
         else:
             out.append([r["metric"], str(r["current"]), r["source"]])
@@ -38,4 +32,44 @@ def _values(rows, meta, comparison_on):
 def write_sheet(creds, rows, meta, comparison_on, master_id="") -> dict:
     try:
         svc = _svc(creds)
-        values =
+        values = _values(rows, meta, comparison_on)
+        title_tab = f"{meta['domain']} {meta['range']}"[:95]
+
+        if master_id:
+            svc.spreadsheets().batchUpdate(spreadsheetId=master_id, body={
+                "requests": [{"addSheet": {"properties": {"title": _uniq(svc, master_id, title_tab)}}}]
+            }).execute()
+            tab = _last_tab(svc, master_id)
+            svc.spreadsheets().values().update(
+                spreadsheetId=master_id, range=f"'{tab}'!A1",
+                valueInputOption="RAW", body={"values": values}).execute()
+            sid = master_id
+        else:
+            created = svc.spreadsheets().create(body={
+                "properties": {"title": f"{meta['domain']} KPIs {meta['range']}"},
+                "sheets": [{"properties": {"title": "KPIs"}}],
+            }).execute()
+            sid = created["spreadsheetId"]
+            svc.spreadsheets().values().update(
+                spreadsheetId=sid, range="KPIs!A1",
+                valueInputOption="RAW", body={"values": values}).execute()
+
+        return ok(url=f"https://docs.google.com/spreadsheets/d/{sid}", spreadsheet_id=sid)
+    except Exception as e:
+        return fail(f"{type(e).__name__}: {e}")
+
+
+def _existing_titles(svc, sid):
+    meta = svc.spreadsheets().get(spreadsheetId=sid).execute()
+    return [s["properties"]["title"] for s in meta.get("sheets", [])]
+
+
+def _uniq(svc, sid, title):
+    existing = set(_existing_titles(svc, sid))
+    if title not in existing:
+        return title
+    return f"{title} {datetime.now().strftime('%H%M%S')}"[:99]
+
+
+def _last_tab(svc, sid):
+    return _existing_titles(svc, sid)[-1]
