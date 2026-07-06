@@ -56,4 +56,22 @@ def write_sheet(creds, rows, meta, comparison_on, master_id=""):
                 spreadsheetId=sid, range="KPIs!A1",
                 valueInputOption="RAW", body={"values": values}).execute()
 
-        return
+        return ok(url="https://docs.google.com/spreadsheets/d/" + sid, spreadsheet_id=sid)
+    except Exception as e:
+        return fail(type(e).__name__ + ": " + str(e))
+
+
+def _existing_titles(svc, sid):
+    meta = svc.spreadsheets().get(spreadsheetId=sid).execute()
+    return [s["properties"]["title"] for s in meta.get("sheets", [])]
+
+
+def _uniq(svc, sid, title):
+    existing = set(_existing_titles(svc, sid))
+    if title not in existing:
+        return title
+    return (title + " " + datetime.now().strftime("%H%M%S"))[:99]
+
+
+def _last_tab(svc, sid):
+    return _existing_titles(svc, sid)[-1]
