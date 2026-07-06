@@ -265,6 +265,13 @@ if start:
 
     rows = build_rows(results["ga4"], results["gsc"], results["psi"],
                       results["ahrefs"], results["dfs"])
+    # Prompt-driven extra metrics (safe catalog; appended as "from prompt" rows)
+    if custom_prompt.strip():
+        try:
+            from connectors import extra_metrics
+            rows += extra_metrics.fetch_from_prompt(custom_prompt, creds, ga4_id, gsc_site, cur)
+        except Exception as _e:
+            st.info(f"Prompt extras skipped: {_e}")
     meta = {"url": url.strip(), "domain": domain, "range": " vs ".join(filter(None, [
         f"{cur[0]}…{cur[1]}", f"{prev_iso[0]}…{prev_iso[1]}" if prev_iso else ""])),
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M")}
