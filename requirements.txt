@@ -6,6 +6,7 @@ google-auth>=2.23.0
 requests>=2.31.0
 pandas>=2.0.0
 python-dotenv>=1.0.0
+python-docx>=1.1.0
 
 # Optional — install only the provider you use for the custom prompt
 google-generativeai>=0.8.0
