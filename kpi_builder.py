@@ -1,5 +1,5 @@
 """Assemble the final KPI rows from connector outputs. No external deps.
-Sources: GA4, GSC (both support cur/prev), PageSpeed, Ahrefs API, DataForSEO.
+Sources: GA4, GSC (both support cur/prev), PageSpeed, Ahrefs (free DR).
 Date-range metrics carry {"cur","prev"}; point-in-time metrics are plain numbers.
 """
 from __future__ import annotations
@@ -49,7 +49,7 @@ def _fmt(val, pct=False):
     return f"{val:,}" if isinstance(val, int) else str(val)
 
 
-def build_rows(ga4, gsc, psi, ahrefs, dfs) -> list[dict]:
+def build_rows(ga4, gsc, psi, ahrefs) -> list[dict]:
     rows = []
 
     def add(metric, cur, prev, source, is_pct=False):
@@ -74,26 +74,11 @@ def build_rows(ga4, gsc, psi, ahrefs, dfs) -> list[dict]:
     c, p = _cp(gsc, "nb_impressions");   add("NB Impressions", c, p, "GSC (NB regex)")
     c, p = _cp(gsc, "nb_ctr");           add("Avg CTR – NB", c, p, "GSC (NB regex)", True)
 
-    # --- Authority (Ahrefs API + DataForSEO) ---
-    da = dfs.get("da") if (dfs and dfs.get("status") == "ok") else None
-    if da is not None:
-        add("DA (Domain Authority)", da, None, "DataForSEO · rank proxy")
-    else:
-        add("DA (Domain Authority)", "N/A · Moz", None, "Moz")
-
-    add("Spam Score", _point(dfs, "spam"), None, "DataForSEO")
+    # --- Authority (Ahrefs free Domain Rating) ---
     add("DR (Domain Rating)", _point(ahrefs, "dr"), None, "Ahrefs (free)")
     # Ahrefs Domain Rating License requires visible attribution when DR is shown.
     if ahrefs and ahrefs.get("dr_attribution"):
         add("DR Source / License", ahrefs["dr_attribution"], None, "Ahrefs")
-
-    # referring domains: Ahrefs first, DataForSEO fallback
-    if ahrefs and ahrefs.get("status") == "ok" and ahrefs.get("ref_domains") is not None:
-        add("Referring Domains", ahrefs["ref_domains"], None, "Ahrefs")
-    elif dfs and dfs.get("status") == "ok" and dfs.get("ref_domains") is not None:
-        add("Referring Domains", dfs["ref_domains"], None, "DataForSEO")
-    else:
-        add("Referring Domains", _point(ahrefs, "ref_domains"), None, "Ahrefs")
 
     # --- Page Speed ---
     add("Desktop Page Speed", _point(psi, "desktop"), None, "PageSpeed")
