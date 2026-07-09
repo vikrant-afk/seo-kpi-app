@@ -247,8 +247,9 @@ def build_claude_desktop_brief(rows, meta, comparison_on) -> str:
 
 ## What I need you to do
 1. Using my connected **Google Analytics (GA4)** and **Google Search Console** connectors in Claude Desktop (use these directly — do NOT use Supermetrics or any other aggregator), pull the same metrics listed below for this reporting window (and the comparison window if shown).
-2. **Cross-verify** those live figures against the tool-extracted numbers below. For any metric that differs by more than ~2%, call it out and give the likely reason (data sampling, timezone, branded/non-branded filter, or a GA4/GSC property mismatch).
-3. Then produce the full **Week-on-Week Search Performance Growth / RCA report** using the **wow-rca-report skill**, using the verified numbers. Where a verified value differs from the tool value, prefer the connector-pulled value and note the correction.
+2. Also pull the **query-level and page-level GSC breakdowns** for both windows, and identify the **top gaining and top declining queries and pages** (by clicks and by impressions). These top movers are not in the tool export below and are needed for the full house-format report.
+3. **Cross-verify** the aggregate live figures against the tool-extracted numbers below. For any metric that differs by more than ~2%, call it out and give the likely reason (data sampling, timezone, branded/non-branded filter, or a GA4/GSC property mismatch).
+4. Then produce the full **Week-on-Week Search Performance Growth / RCA report** using the **wow-rca-report skill**, using the verified numbers and the top-mover breakdowns. Where a verified value differs from the tool value, prefer the connector-pulled value and note the correction.
 
 ## Tool-extracted KPI figures (verify against these)
 {_kpi_lines(rows)}
