@@ -347,3 +347,17 @@ if ex:
             file_name=f"{ex['meta']['domain']}_WoW_RCA.docx",
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
         st.success("RCA ready — click to download.")
+
+    # ---- Verify via Claude Desktop (GA / GSC connectors) + run the WoW skill ----
+    with st.expander("Verify in Claude Desktop (GA / GSC connectors) + run the WoW RCA skill"):
+        import rca_report
+        brief = rca_report.build_claude_desktop_brief(
+            ex["rows"], ex["meta"], ex["comparison_on"])
+        st.caption("This app can't reach your Claude Desktop connectors/skills directly. "
+                   "Copy the brief below into Claude Desktop — it will pull the data using your "
+                   "Google Analytics & Search Console connectors, cross-check these numbers, "
+                   "then run the wow-rca-report skill.")
+        st.code(brief, language="markdown")   # the code box has a built-in copy button
+        st.download_button("Download brief (.md)", brief.encode(),
+                           file_name=f"{ex['meta']['domain']}_RCA_brief.md",
+                           mime="text/markdown")
