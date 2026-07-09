@@ -271,35 +271,79 @@ if start:
         f"{cur[0]}…{cur[1]}", f"{prev_iso[0]}…{prev_iso[1]}" if prev_iso else ""])),
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M")}
 
-    st.subheader("KPI report")
-    render_table(rows, comparison_on)
-
     # warnings for failed sources
     warns = [f"{k.upper()}: {v['error']}" for k, v in results.items()
              if v.get("status") == "error"]
-    if warns:
-        st.warning("Some sources didn't return data:\n\n- " + "\n- ".join(warns))
 
-    # write to Google Sheet
+    # write to Google Sheet (once, here — not on every rerun)
+    sheet_url = sheet_err = None
     if creds:
         sheet = c_sheets.write_sheet(creds, rows, meta, comparison_on, cfg["output_sheet_id"])
         if sheet.get("status") == "ok":
-            st.link_button("Open Google Sheet", sheet["url"], type="primary")
+            sheet_url = sheet["url"]
         else:
-            st.info(f"Sheet not written: {sheet.get('error')}")
+            sheet_err = sheet.get("error")
 
-    # CSV download
+    # CSV bytes (built once)
     df = pd.DataFrame([{"Metric": r["metric"], "Current": r["current"],
                         "Previous": r["previous"],
                         "Change %": r["change_pct"], "Source": r["source"]} for r in rows])
-    st.download_button("Download CSV", df.to_csv(index=False).encode(),
-                       file_name=f"{domain}_kpis.csv", mime="text/csv")
+    csv_bytes = df.to_csv(index=False).encode()
 
-    # optional AI analysis
+    # optional AI analysis (once)
     analysis = c_llm.run_prompt(
         custom_prompt.strip(), to_flat_dict(rows), meta, cfg["llm_provider"],
         {"gemini_key": cfg["gemini_key"], "gemini_model": cfg["gemini_model"],
          "anthropic_key": cfg["anthropic_key"], "anthropic_model": cfg["anthropic_model"]})
-    if analysis:
+
+    # stash everything so the report + RCA button survive Streamlit reruns
+    st.session_state["extraction"] = {
+        "rows": rows, "meta": meta, "comparison_on": comparison_on,
+        "warns": warns, "sheet_url": sheet_url, "sheet_err": sheet_err,
+        "csv_bytes": csv_bytes, "csv_name": f"{domain}_kpis.csv",
+        "analysis": analysis,
+    }
+    st.session_state.pop("rca_docx", None)  # clear any RCA from a previous run
+
+# ----------------------------------------------------------------------------- results
+ex = st.session_state.get("extraction")
+if ex:
+    st.subheader("KPI report")
+    render_table(ex["rows"], ex["comparison_on"])
+
+    if ex["warns"]:
+        st.warning("Some sources didn't return data:\n\n- " + "\n- ".join(ex["warns"]))
+
+    if ex["sheet_url"]:
+        st.link_button("Open Google Sheet", ex["sheet_url"], type="primary")
+    elif ex["sheet_err"]:
+        st.info(f"Sheet not written: {ex['sheet_err']}")
+
+    st.download_button("Download CSV", ex["csv_bytes"],
+                       file_name=ex["csv_name"], mime="text/csv")
+
+    if ex["analysis"]:
         st.subheader("AI analysis")
-        st.markdown(analysis)
+        st.markdown(ex["analysis"])
+
+    # ---- Week-on-Week RCA (Word) -------------------------------------------
+    st.markdown("---")
+    st.markdown('<div class="rulelabel">Root-cause analysis (WoW)</div>',
+                unsafe_allow_html=True)
+    st.caption("Builds a full Week-on-Week RCA in Word — KPI matrix from your data, "
+               "analysis & recommendations written by Claude.")
+    if st.button("Generate RCA report (Word)", type="primary"):
+        with st.spinner("Claude is writing the WoW RCA…"):
+            try:
+                import rca_report
+                st.session_state["rca_docx"] = rca_report.generate_rca_docx(
+                    ex["rows"], ex["meta"], cfg, ex["comparison_on"])
+            except Exception as e:  # noqa: BLE001
+                st.error(f"RCA generation failed: {e}")
+
+    if st.session_state.get("rca_docx"):
+        st.download_button(
+            "⬇  Download RCA (.docx)", st.session_state["rca_docx"],
+            file_name=f"{ex['meta']['domain']}_WoW_RCA.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+        st.success("RCA ready — click to download.")
