@@ -15,7 +15,6 @@ import settings
 from daterange import (COMPARISONS, PRESETS, iso, previous_range, resolve_range)
 from kpi_builder import build_rows, to_flat_dict
 from connectors import ahrefs_api as c_ahrefs
-from connectors import dataforseo as c_dfs
 from connectors import discovery
 from connectors import ga4 as c_ga4
 from connectors import llm as c_llm
@@ -257,14 +256,10 @@ if start:
         st.write("Ahrefs API…")
         results["ahrefs"] = c_ahrefs.get_ahrefs(cfg["ahrefs_token"], domain, cur[1])
 
-        st.write("DataForSEO…")
-        results["dfs"] = c_dfs.get_dataforseo(cfg["dfs_login"], cfg["dfs_password"],
-                                              domain, cfg["da_source"])
-
         status.update(label="Extraction complete", state="complete")
 
     rows = build_rows(results["ga4"], results["gsc"], results["psi"],
-                      results["ahrefs"], results["dfs"])
+                      results["ahrefs"])
     # Prompt-driven extra metrics (safe catalog; appended as "from prompt" rows)
     if custom_prompt.strip():
         try:
