@@ -4,6 +4,8 @@ Deploy once, share the URL; anyone can enter a URL + date range and pull the rep
 """
 from __future__ import annotations
 
+import base64
+import pathlib
 import re
 from datetime import date, datetime, timedelta
 from urllib.parse import urlparse
@@ -42,6 +44,19 @@ SHEETS_SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 ALL_SCOPES = GA_SCOPES + GSC_SCOPES + SHEETS_SCOPES
 
 
+# ----------------------------------------------------------------------------- brand assets
+def _logo_b64(name: str) -> str:
+    """Load a PNG from ./assets and return base64, or '' if it's not there."""
+    try:
+        p = pathlib.Path(__file__).parent / "assets" / name
+        return base64.b64encode(p.read_bytes()).decode()
+    except Exception:  # noqa: BLE001
+        return ""
+
+TF_LOGO = _logo_b64("think_forge.png")
+OP_LOGO = _logo_b64("opositive.png")
+
+
 # ----------------------------------------------------------------------------- helpers
 def domain_of(url: str) -> str:
     netloc = urlparse(url if "//" in url else f"https://{url}").netloc or url
@@ -64,33 +79,87 @@ def inject_css():
     st.markdown(
         """
         <style>
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
-        .block-container {max-width: 940px; padding-top: 2.2rem;}
-        .wordmark {font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:1.9rem;
-                   letter-spacing:-0.02em; color:#141A16; margin-bottom:.15rem;}
-        .wordmark .dot {color:#0E6E4E;}
-        .subhead {color:#5B615B; font-size:.92rem; margin-bottom:1.4rem;}
-        .rulelabel {font-family:'IBM Plex Mono',monospace; font-size:.72rem; letter-spacing:.14em;
-                    text-transform:uppercase; color:#0E6E4E; margin:1.3rem 0 .3rem;}
-        textarea {font-family:'IBM Plex Mono',monospace !important; font-size:.82rem !important;}
-        div.stButton>button {background:#0E6E4E; color:#fff; border:0; border-radius:8px;
-                    font-weight:600; height:46px; width:100%;}
-        div.stButton>button:hover {background:#0B5A40; color:#fff;}
-        /* KPI readout */
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Rajdhani:wght@500;600;700&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+        /* futuristic black canvas with red glow (AI Forge) */
+        .stApp {
+          background:
+            radial-gradient(1100px 520px at 50% -8%, rgba(218,18,32,0.16), transparent 60%),
+            radial-gradient(820px 500px at 100% 0%, rgba(218,18,32,0.06), transparent 55%),
+            #07070A;
+        }
+        .block-container {max-width: 960px; padding-top: 1.5rem;}
+
+        /* ---- header ---- */
+        .topbar {display:flex; align-items:center; justify-content:space-between; margin-bottom:.6rem;}
+        .topbar .op {display:flex; align-items:center; gap:10px;}
+        .topbar .op img {height:26px;}
+        .topbar .op span {font-family:'Rajdhani',sans-serif; font-weight:600; letter-spacing:.16em;
+                          text-transform:uppercase; font-size:.78rem; color:#9AA0AA;}
+        .topbar .pb {font-family:'Rajdhani',sans-serif; font-weight:600; letter-spacing:.18em;
+                     text-transform:uppercase; font-size:.7rem; color:#6C7079;}
+        .hero {display:flex; align-items:center; gap:20px; margin:.4rem 0 .1rem;}
+        .hero img {height:92px; filter: drop-shadow(0 0 22px rgba(60,150,255,.22));}
+        .hero .wm {font-family:'Orbitron',sans-serif; font-weight:800; font-size:2.05rem;
+                   letter-spacing:.02em; color:#F4F5F7; line-height:1.03;
+                   text-shadow:0 0 26px rgba(218,18,32,.35);}
+        .hero .wm .dot {color:#DA1220;}
+        .hero .wm .sub {display:block; font-family:'Rajdhani',sans-serif; font-weight:600;
+                        font-size:.86rem; letter-spacing:.22em; text-transform:uppercase;
+                        color:#8A8F98; margin-top:.35rem; text-shadow:none;}
+        .subhead {color:#8A8F98; font-family:'Rajdhani',sans-serif; letter-spacing:.02em;
+                  font-size:.98rem; margin:.35rem 0 1.3rem;}
+
+        /* ---- section rule labels (red marker bar, like the deck) ---- */
+        .rulelabel {font-family:'Rajdhani',sans-serif; font-weight:700; font-size:.82rem;
+                    letter-spacing:.2em; text-transform:uppercase; color:#F2413A;
+                    margin:1.4rem 0 .35rem; padding-left:12px; border-left:3px solid #DA1220;}
+
+        /* ---- inputs ---- */
+        textarea, .stTextInput input {font-family:'IBM Plex Mono',monospace !important;
+                    font-size:.82rem !important; background:#0E0E14 !important; color:#E7E9EC !important;
+                    border:1px solid #26262E !important; border-radius:8px !important;}
+        textarea:focus, .stTextInput input:focus {border-color:#DA1220 !important;
+                    box-shadow:0 0 0 2px rgba(218,18,32,.25) !important;}
+        label, .stSelectbox label, .stDateInput label {color:#AEB3BB !important;
+                    font-family:'Rajdhani',sans-serif !important; font-weight:600 !important;
+                    letter-spacing:.06em !important;}
+
+        /* ---- buttons ---- */
+        div.stButton>button {background:#DA1220; color:#fff; border:0; border-radius:9px;
+                    font-family:'Rajdhani',sans-serif; font-weight:700; letter-spacing:.12em;
+                    text-transform:uppercase; height:48px; width:100%;
+                    box-shadow:0 0 20px rgba(218,18,32,.35);}
+        div.stButton>button:hover {background:#F0152A; color:#fff;
+                    box-shadow:0 0 30px rgba(218,18,32,.55);}
+        .stDownloadButton>button {background:#14141B; color:#F4F5F7; border:1px solid #DA1220;
+                    border-radius:9px; font-family:'Rajdhani',sans-serif; font-weight:700;
+                    letter-spacing:.1em; text-transform:uppercase; box-shadow:none;}
+        .stDownloadButton>button:hover {background:#1C1C25; color:#fff;}
+        .stLinkButton>a {background:#DA1220 !important; color:#fff !important; border:0 !important;
+                    font-family:'Rajdhani',sans-serif !important; font-weight:700 !important;
+                    letter-spacing:.1em !important; text-transform:uppercase !important;
+                    box-shadow:0 0 20px rgba(218,18,32,.35) !important;}
+
+        /* ---- KPI table ---- */
         table.kpi {width:100%; border-collapse:collapse; font-size:.9rem;
-                   border-left:3px solid #0E6E4E; background:#fff;}
-        table.kpi th {font-family:'IBM Plex Mono',monospace; font-size:.68rem; letter-spacing:.1em;
-                   text-transform:uppercase; text-align:left; color:#5B615B;
-                   padding:10px 14px; border-bottom:1px solid #E2E6E1;}
-        table.kpi td {padding:11px 14px; border-bottom:1px solid #EEF1EE; color:#141A16;}
+                   border-left:3px solid #DA1220; background:#0D0D13;
+                   box-shadow:0 0 30px rgba(0,0,0,.4);}
+        table.kpi th {font-family:'Rajdhani',sans-serif; font-size:.72rem; letter-spacing:.14em;
+                   font-weight:700; text-transform:uppercase; text-align:left; color:#8A8F98;
+                   padding:11px 14px; border-bottom:1px solid #22222B; background:#101017;}
+        table.kpi td {padding:11px 14px; border-bottom:1px solid #191921; color:#E7E9EC;}
         table.kpi td.num {font-family:'Space Grotesk',sans-serif; font-weight:600;
-                   font-variant-numeric:tabular-nums; text-align:right;}
-        table.kpi td.src {font-family:'IBM Plex Mono',monospace; font-size:.72rem; color:#7A807A;}
-        .chip {font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:.82rem;
-                   padding:2px 8px; border-radius:20px;}
-        .up {color:#0E6E4E; background:#E7F2EC;}
-        .down {color:#B4341C; background:#F7E7E3;}
-        .flat {color:#6B7280; background:#EEF1EE;}
+                   font-variant-numeric:tabular-nums; text-align:right; color:#F4F5F7;}
+        table.kpi td.src {font-family:'IBM Plex Mono',monospace; font-size:.72rem; color:#71767F;}
+        table.kpi tr:hover td {background:rgba(218,18,32,.05);}
+
+        .chip {font-family:'Rajdhani',sans-serif; font-weight:700; font-size:.82rem;
+               padding:2px 9px; border-radius:6px; letter-spacing:.04em;}
+        .up {color:#2ED573; background:rgba(46,213,115,.12);}
+        .down {color:#FF4757; background:rgba(255,71,87,.12);}
+        .flat {color:#8A8F98; background:rgba(138,143,152,.12);}
+        hr {border-color:#1E1E26;}
         </style>
         """, unsafe_allow_html=True,
     )
@@ -129,10 +198,21 @@ st.set_page_config(page_title="SEO KPI Extractor", page_icon="📈", layout="cen
 inject_css()
 cfg = settings.defaults()
 
-st.markdown('<div class="wordmark">SEO KPI Extractor<span class="dot">.</span></div>',
-            unsafe_allow_html=True)
-st.markdown('<div class="subhead">Enter a site and a date range, click Start, get the '
-            'KPI report in Google Sheets.</div>', unsafe_allow_html=True)
+_tf = f'<img src="data:image/png;base64,{TF_LOGO}" alt="Think Forge">' if TF_LOGO else ''
+_op = f'<img src="data:image/png;base64,{OP_LOGO}" alt="opositive.io">' if OP_LOGO else ''
+st.markdown(f"""
+<div class="topbar">
+  <div class="op">{_op}<span>opositive.io</span></div>
+  <div class="pb">Powered by Think Forge</div>
+</div>
+<div class="hero">
+  {_tf}
+  <div class="wm">SEO KPI EXTRACTOR<span class="dot">.</span>
+    <span class="sub">Think Forge · Search Performance Intelligence</span>
+  </div>
+</div>
+<div class="subhead">Enter a site and a date range, hit Start, and get the KPI report in Google Sheets.</div>
+""", unsafe_allow_html=True)
 
 # --- Inputs (no st.form, so the custom date pickers can appear dynamically) ---
 @st.cache_data(ttl=3600, show_spinner="Loading your clients…")
