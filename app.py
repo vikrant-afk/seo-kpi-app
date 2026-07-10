@@ -88,10 +88,10 @@ def inject_css():
             radial-gradient(820px 500px at 100% 0%, rgba(218,18,32,0.06), transparent 55%),
             #07070A;
         }
-        .block-container {max-width: 960px; padding-top: 1.5rem;}
+        .block-container {max-width: 960px; padding-top: 3rem;}
 
         /* ---- header ---- */
-        .topbar {display:flex; align-items:center; justify-content:space-between; margin-bottom:.6rem;}
+        .topbar {display:flex; align-items:center; justify-content:space-between; margin:.4rem 0 .6rem;}
         .topbar .op {display:flex; align-items:center; gap:10px;}
         .topbar .op img {height:26px;}
         .topbar .op span {font-family:'Rajdhani',sans-serif; font-weight:600; letter-spacing:.16em;
